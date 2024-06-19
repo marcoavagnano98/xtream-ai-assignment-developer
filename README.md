@@ -67,5 +67,16 @@ Observability is key. Save every request and response made to the APIs to a **pr
 
 ---
 
-## How to run
-Please fill this section as part of the assignment.
+## How to run 
+![image](https://github.com/marcoavagnano98/xtream-ai-assignment-developer/assets/22610930/611d68ee-c5ec-4263-974e-795dca943f9d)
+
+
+
+### Challenge 1-2
+Run the pipeline in console:`python3 pipeline.py`  <br />
+#### Solution
+The first two challenge asked to develop an automated pipeline to train two types of models: Linear and XGBoost.
+The models require different types of Dataframe preprocessing, so I thought about a class that would allow to implement a specific preprocessing method.
+The data may also requires to a specific transformation before and after training, so I defined an heritable method that took care of training and testing the model.
+The training pipeline is managed by a `BaseTrainer` and for each models I defined two subclass `LinearTrainer` and `XGBoostTrainer` to load, train and test the specific model.
+
