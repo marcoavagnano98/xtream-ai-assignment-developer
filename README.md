@@ -73,7 +73,7 @@ Observability is key. Save every request and response made to the APIs to a **pr
 
 
 ### Challenge 1-2
-Run the pipeline in console:`python3 pipeline.py`  <br />
+Run the pipeline in console:`python3 pipeline.py -csv data/diamonds.csv -lr -xg` <br />
 #### Solution
 The first two challenge asked to develop an automated pipeline to train two types of models: Linear and XGBoost.
 The models require different types of Dataframe preprocessing, so I thought about a class that would allow to implement a specific preprocessing method.
