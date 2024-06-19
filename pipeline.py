@@ -10,6 +10,7 @@ from datetime import datetime
 import os
 import joblib
 import xgboost
+import optuna
 
 class BaseTrainer():
     def __init__(self, data, seed=42):
@@ -74,7 +75,7 @@ class LinearTrainer(BaseTrainer):
        
 
 
-    def train_and_test(self, log_process):
+    def train_and_test(self, log_process= False):
         x_train, x_test, y_train, y_test = self.prepare_set()
         if log_process:
             y_train = np.log(y_train)
@@ -100,29 +101,71 @@ class XGBoostTrainer(BaseTrainer):
         self.processed_data["cut"] = pd.Categorical( self.processed_data['cut'], categories=['Fair', 'Good', 'Very Good', 'Ideal', 'Premium'], ordered=True)
         self.processed_data['color'] = pd.Categorical( self.processed_data['color'], categories=['D', 'E', 'F', 'G', 'H', 'I', 'J'], ordered=True)
         self.processed_data['clarity'] = pd.Categorical( self.processed_data['clarity'], categories=['IF', 'VVS1', 'VVS2', 'VS1', 'VS2', 'SI1', 'SI2', 'I1'], ordered=True)
+    
 
-    def train_and_test(self):
-        self.model = xgboost.XGBRegressor(enable_categorical=True, random_state=self.seed)
-        x_train, x_test, y_train, y_test = self.prepare_set()
-        self.model.fit(x_train, y_train)
-        xgb_preds = self.model.predict(x_test)
+    def xgboost_train(self,x, y, **model_params):
+        self.model = xgboost.XGBRegressor(**model_params)
+        self.model.fit(x, y)
+
+
+    def objective(self, trial=None):
         
-        return self.score(y_test, xgb_preds)
+        param = {
+        'lambda': trial.suggest_float('lambda', 1e-8, 1.0, log=True),
+        'alpha': trial.suggest_float('alpha', 1e-8, 1.0, log=True),
+        'colsample_bytree': trial.suggest_categorical('colsample_bytree', [0.3, 0.4, 0.5, 0.7]),
+        'subsample': trial.suggest_categorical('subsample', [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]),
+        'learning_rate': trial.suggest_float('learning_rate', 1e-8, 1.0, log=True),
+        'n_estimators': trial.suggest_int('n_estimators', 100, 1000),
+        'max_depth': trial.suggest_int('max_depth', 3, 9),
+        'random_state': self.seed,
+        'min_child_weight': trial.suggest_int('min_child_weight', 1, 10),
+        'enable_categorical': True
+        }
+        x_train, x_test, y_train, y_test = self.prepare_set()
+        
+        self.xgboost_train(x_train, y_train, **param)
+        
+        xgb_preds = self.model.predict(x_test)
+        scores = self.score(y_test, xgb_preds)
+        return scores["MAE"]
+
+        
+
+
+    def train_and_test(self, tuning_trials=False):
+        model_params = {'random_state': self.seed, 'enable_categorical': True}
+        if tuning_trials:
+            study = optuna.create_study(direction='minimize', study_name='Diamonds XGBoost')
+            study.optimize(self.objective, n_trials=tuning_trials)
+            model_params.update(study.best_params)
+        
+        x_train, x_test, y_train, y_test = self.prepare_set()
+        self.xgboost_train(x_train, y_train, **model_params)
+        xgb_preds = self.model.predict(x_test)
+        results = self.score(y_test, xgb_preds)
+        results["tuning_trials"] = tuning_trials
+
+        return results
+            
+         
 
         
 if __name__ == "__main__":
+    
     diamonds = pd.read_csv("data/diamonds.csv")
     
     # normalize data for all possible models
     diamonds = diamonds[(diamonds.x * diamonds.y * diamonds.z != 0) & (diamonds.price > 0)]
 
     linear_trainer = LinearTrainer(data=diamonds)
-    boost_trainer = XGBoostTrainer(data=diamonds)
+    xgboost_trainer = XGBoostTrainer(data=diamonds)
 
-    # train and save models changing some parameters when object is called
-
-    linear_trainer(log_process=False)
+    linear_trainer()
     
     linear_trainer(log_process=True)
 
-    boost_trainer()
+    xgboost_trainer()
+
+    # hyperparameter tuning
+    xgboost_trainer(tuning_trials = 100)
