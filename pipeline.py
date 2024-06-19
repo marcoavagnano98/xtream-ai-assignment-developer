@@ -1,5 +1,3 @@
-# 1 include more datasets
-# 2 define preprocessing strategy
 import pandas as pd
 from abc import abstractmethod
 from sklearn.model_selection import train_test_split
@@ -45,6 +43,7 @@ class BaseTrainer():
         return {"R2": round(r2_score(y_test, preds), 4), "MAE": round(mean_absolute_error(y_test, preds), 2)}
 
     def save(self, results):
+        print(results)
         tmp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S.%f")
         results["timestamp"] = tmp
         if not os.path.exists(self.res_path):
@@ -75,19 +74,19 @@ class LinearTrainer(BaseTrainer):
        
 
 
-    def train_and_test(self, log_process= False):
+    def train_and_test(self, log_trasf= False):
         x_train, x_test, y_train, y_test = self.prepare_set()
-        if log_process:
+        if log_trasf:
             y_train = np.log(y_train)
-
+        
+        print("Linear model training")
         self.model = LinearRegression()
         self.model.fit(x_train, y_train)
         preds = self.model.predict(x_test)
-        if log_process:
+        if log_trasf:
             preds = np.exp(preds)
         results = self.score(y_test, preds)
-        results["log_p"] = log_process
-        
+        results["log_t"] = log_trasf
         return results
     
 class XGBoostTrainer(BaseTrainer):
@@ -108,19 +107,19 @@ class XGBoostTrainer(BaseTrainer):
         self.model.fit(x, y)
 
 
-    def objective(self, trial=None):
+    def objective(self, trial):
         
         param = {
-        'lambda': trial.suggest_float('lambda', 1e-8, 1.0, log=True),
-        'alpha': trial.suggest_float('alpha', 1e-8, 1.0, log=True),
-        'colsample_bytree': trial.suggest_categorical('colsample_bytree', [0.3, 0.4, 0.5, 0.7]),
-        'subsample': trial.suggest_categorical('subsample', [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]),
-        'learning_rate': trial.suggest_float('learning_rate', 1e-8, 1.0, log=True),
-        'n_estimators': trial.suggest_int('n_estimators', 100, 1000),
-        'max_depth': trial.suggest_int('max_depth', 3, 9),
-        'random_state': self.seed,
-        'min_child_weight': trial.suggest_int('min_child_weight', 1, 10),
-        'enable_categorical': True
+            'lambda': trial.suggest_float('lambda', 1e-8, 1.0, log=True),
+            'alpha': trial.suggest_float('alpha', 1e-8, 1.0, log=True),
+            'colsample_bytree': trial.suggest_categorical('colsample_bytree', [0.3, 0.4, 0.5, 0.7]),
+            'subsample': trial.suggest_categorical('subsample', [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]),
+            'learning_rate': trial.suggest_float('learning_rate', 1e-8, 1.0, log=True),
+            'n_estimators': trial.suggest_int('n_estimators', 100, 1000),
+            'max_depth': trial.suggest_int('max_depth', 3, 9),
+            'random_state': self.seed,
+            'min_child_weight': trial.suggest_int('min_child_weight', 1, 10),
+            'enable_categorical': True
         }
         x_train, x_test, y_train, y_test = self.prepare_set()
         
@@ -136,10 +135,11 @@ class XGBoostTrainer(BaseTrainer):
     def train_and_test(self, tuning_trials=False):
         model_params = {'random_state': self.seed, 'enable_categorical': True}
         if tuning_trials:
-            study = optuna.create_study(direction='minimize', study_name='Diamonds XGBoost')
+            study = optuna.create_study(direction='minimize',  study_name='Diamonds XGBoost')
             study.optimize(self.objective, n_trials=tuning_trials)
             model_params.update(study.best_params)
-        
+            
+        print("XGBoost model training")
         x_train, x_test, y_train, y_test = self.prepare_set()
         self.xgboost_train(x_train, y_train, **model_params)
         xgb_preds = self.model.predict(x_test)
@@ -159,13 +159,14 @@ if __name__ == "__main__":
     diamonds = diamonds[(diamonds.x * diamonds.y * diamonds.z != 0) & (diamonds.price > 0)]
 
     linear_trainer = LinearTrainer(data=diamonds)
+    
     xgboost_trainer = XGBoostTrainer(data=diamonds)
-
+    
     linear_trainer()
     
-    linear_trainer(log_process=True)
-
+    linear_trainer(log_trasf=True)
+    
     xgboost_trainer()
-
+    
     # hyperparameter tuning
-    xgboost_trainer(tuning_trials = 100)
+    xgboost_trainer(tuning_trials = 2)
