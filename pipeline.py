@@ -1,12 +1,17 @@
-import pandas as pd
+import os
+import ast
+import argparse
 from abc import abstractmethod
+from datetime import datetime
+import joblib
+
+import numpy as np
+import pandas as pd
+
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_absolute_error
-import numpy as np
-from datetime import datetime
-import os
-import joblib
+
 import xgboost
 import optuna
 
@@ -152,21 +157,31 @@ class XGBoostTrainer(BaseTrainer):
 
         
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+                    prog='TrainingPipeline',
+                    description='Automatic pipeline for models training')
+
+    parser.add_argument('-csv')
+    parser.add_argument('-lr', action="store_true")
+    parser.add_argument('-xg', action="store_true")
     
-    diamonds = pd.read_csv("data/diamonds.csv")
+    args = parser.parse_args()
+    csv_file = args.csv
     
+    diamonds = pd.read_csv(csv_file)
+
     # normalize data for all possible models
     diamonds = diamonds[(diamonds.x * diamonds.y * diamonds.z != 0) & (diamonds.price > 0)]
 
-    linear_trainer = LinearTrainer(data=diamonds)
-    
-    xgboost_trainer = XGBoostTrainer(data=diamonds)
-    
-    linear_trainer()
-    
-    linear_trainer(log_trasf=True)
-    
-    xgboost_trainer()
-    
-    # hyperparameter tuning
-    xgboost_trainer(tuning_trials = 2)
+    if args.lr:
+        linear_trainer = LinearTrainer(data=diamonds)
+        linear_trainer()
+        linear_trainer(log_trasf=True)
+
+    if args.xg:
+        xgboost_trainer = XGBoostTrainer(data=diamonds)
+        
+        xgboost_trainer()
+        t_trials = 100
+        # hyperparameter tuning
+        xgboost_trainer(tuning_trials = t_trials)
