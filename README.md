@@ -80,3 +80,6 @@ The models require different types of Dataframe preprocessing, so I thought abou
 The data may also requires to a specific transformation before and after training, so I defined an heritable method that took care of training and testing the model.
 The training pipeline is managed by a `BaseTrainer` and for each models I defined two subclass `LinearTrainer` and `XGBoostTrainer` to load, train and test the specific model.
 
+### Challenge 3
+Move in `webapp` folder <br/>
+Run `flask --app app run`
