@@ -16,6 +16,7 @@ import xgboost
 import optuna
 
 class BaseTrainer():
+
     def __init__(self, data, seed=42):
         
         self.data = data
@@ -37,7 +38,6 @@ class BaseTrainer():
     def prepare_set(self):
         x = self.processed_data.drop(columns='price')
         y = self.processed_data.price
-
         return train_test_split(x, y, test_size=0.2, random_state=self.seed)
     
     @abstractmethod
@@ -75,7 +75,7 @@ class LinearTrainer(BaseTrainer):
 
     def preprocess(self):
         self.processed_data = self.data.drop(columns=['depth', 'table', 'y', 'z'])
-        self.processed_data = pd.get_dummies(self.data, columns=['cut', 'color', 'clarity'], drop_first=True)
+        self.processed_data = pd.get_dummies(self.processed_data, columns=['cut', 'color', 'clarity'], drop_first=True)
        
 
 
@@ -130,7 +130,8 @@ class XGBoostTrainer(BaseTrainer):
         
         self.xgboost_train(x_train, y_train, **param)
         
-        xgb_preds = self.model.predict(x_test)
+        xgb_preds = self.model.predict(x_test[0])
+        
         scores = self.score(y_test, xgb_preds)
         return scores["MAE"]
 
@@ -173,6 +174,7 @@ if __name__ == "__main__":
     # normalize data for all possible models
     diamonds = diamonds[(diamonds.x * diamonds.y * diamonds.z != 0) & (diamonds.price > 0)]
 
+    # it creates one model for each training session
     if args.lr:
         linear_trainer = LinearTrainer(data=diamonds)
         linear_trainer()
@@ -182,6 +184,6 @@ if __name__ == "__main__":
         xgboost_trainer = XGBoostTrainer(data=diamonds)
         
         xgboost_trainer()
-        t_trials = 100
+        t_trials = 10
         # hyperparameter tuning
         xgboost_trainer(tuning_trials = t_trials)
