@@ -9,3 +9,6 @@ def xgboost_preprocess(df, cuts, colors, clarities):
 
 def load_best_model():
     return joblib.load("best_model/XGBoost-trials100.pkl")
+
+def read_df(p):
+    return pd.read_csv(p)

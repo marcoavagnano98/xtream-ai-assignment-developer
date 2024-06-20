@@ -76,7 +76,7 @@ class LinearTrainer(BaseTrainer):
     def preprocess(self):
         self.processed_data = self.data.drop(columns=['depth', 'table', 'y', 'z'])
         self.processed_data = pd.get_dummies(self.processed_data, columns=['cut', 'color', 'clarity'], drop_first=True)
-       
+        
 
 
     def train_and_test(self, log_trasf= False):
@@ -105,7 +105,7 @@ class XGBoostTrainer(BaseTrainer):
         self.processed_data["cut"] = pd.Categorical( self.processed_data['cut'], categories=['Fair', 'Good', 'Very Good', 'Ideal', 'Premium'], ordered=True)
         self.processed_data['color'] = pd.Categorical( self.processed_data['color'], categories=['D', 'E', 'F', 'G', 'H', 'I', 'J'], ordered=True)
         self.processed_data['clarity'] = pd.Categorical( self.processed_data['clarity'], categories=['IF', 'VVS1', 'VVS2', 'VS1', 'VS2', 'SI1', 'SI2', 'I1'], ordered=True)
-    
+        print(self.processed_data.keys())
 
     def xgboost_train(self,x, y, **model_params):
         self.model = xgboost.XGBRegressor(**model_params)
@@ -130,7 +130,7 @@ class XGBoostTrainer(BaseTrainer):
         
         self.xgboost_train(x_train, y_train, **param)
         
-        xgb_preds = self.model.predict(x_test[0])
+        xgb_preds = self.model.predict(x_test)
         
         scores = self.score(y_test, xgb_preds)
         return scores["MAE"]
@@ -184,6 +184,6 @@ if __name__ == "__main__":
         xgboost_trainer = XGBoostTrainer(data=diamonds)
         
         xgboost_trainer()
-        t_trials = 10
+        t_trials = 100
         # hyperparameter tuning
         xgboost_trainer(tuning_trials = t_trials)

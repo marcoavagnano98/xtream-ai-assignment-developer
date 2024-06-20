@@ -35,8 +35,9 @@ def render_index(**params):
     params.update({"cut_select": cut_select, "color_select": color_select, "clarity_select": clarity_select})
     return render_template('index.html',**params)
 
-@app.route("/submit", methods=['GET', 'POST'])
-def predict_diamond_price():
+@app.route("/submit", methods=['POST'])
+def submit():
+    action = request.form.get('action')
     data = {
         'carat' : [float(request.form.get('carat'))],
         'cut': [request.form.get('cut')],
@@ -48,11 +49,39 @@ def predict_diamond_price():
         'y': [float(request.form.get('y'))],
         'z': [float(request.form.get('z'))]
     }
+    n_diamond = request.form.get('ndiamond')
+    if not n_diamond:
+        n_diamond = 10
+    else:
+        n_diamond = int(n_diamond)
+    if action == 'predict':
+        return predict_diamond_price(data)
+    elif action == 'similar':
+        return get_similar_diamonds(data, n_diamond)
+    else:
+        return "<p>Unknown action!</p>"
 
+
+def predict_diamond_price(data):
     model = load_best_model()
     df = pd.DataFrame(xgboost_preprocess(data, cuts=cuts, clarities=clarities, colors=colors)) 
     price = round(float(model.predict(df)[0]), 2)
-
     return render_index(predicted_price = price)
 
+def get_similar_diamonds(data, n_sample):
+    print(n_sample)
+    df = read_df("data/diamonds.csv")
+    filtered_df = df[
+        (df['cut'] == data['cut'][0]) &
+        (df['color'] == data['color'][0]) &
+        (df['clarity'] == data['clarity'][0])
+    ]
+    
+    
+   
+    filtered_df['carat_diff'] = (filtered_df['carat'] - data['carat'][0]).abs()
+    most_similar_rows = filtered_df.nsmallest(n_sample, 'carat_diff')
 
+    table_html = most_similar_rows.to_html(classes='table table-striped', index=True)
+    
+    return render_index(diamond_data = table_html)

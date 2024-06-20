@@ -27,6 +27,11 @@
             padding: 10px;
             margin-top: 10px;
         }
+        .table-container {
+            max-height: 400px; /* Adjust as needed */
+            overflow-y: auto;
+            border: 1px solid #ddd;
+        }
     </style>
 </head>
 <body>
@@ -73,20 +78,27 @@
                 
 
             </table>
-            <button type="submit">Predict Price</button>
-            <button type="submit">Get Similar Diamonds</button>
-        
-
-            <!-- Label inizialmente nascosta -->
-            
-            
+            <button type="submit" name="action" value="predict">Predict Price</button>
+  
+            <table>
+                <tr>
+                    <td><label for="ndiamond">N diamond (default: 10)</label></td>
+                    <td><input type="text" id="ndiamond" name="ndiamond"></td>                   
+                </tr>
+            </table>
+            <button type="submit" name="action" value="similar">Get Similar Diamonds</button>  
         </form>
+
         <table>
             <tr>
                 <td><label for="readonlyText">Predicted price</label></td>
                 <td><input type="text" id="pred_price" readonly value="{{predicted_price}}"></td>
             </tr>
+
         </table>
+        <div class="table-container">
+            {{ diamond_data | safe }}
+        </div>
     </div>
 </body>
 </html>
