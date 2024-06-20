@@ -1,11 +1,11 @@
 from flask import Flask, request
 from flask import render_template
-import xgboost as xgb
+
 
 import pandas as pd
-app = Flask(__name__)
+from utils import *
 
-import joblib
+app = Flask(__name__)
 cuts = ["Good", "Ideal", "Premium", "Very Good"]
 clarities = ["IF", "SI1", "SI2", "VS1", "VS2", "VVS1", "VVS2"]
 colors =["E","F", "G", "H", "I", "J"]
@@ -49,21 +49,10 @@ def predict_diamond_price():
         'z': [float(request.form.get('z'))]
     }
 
-    
-
     model = load_best_model()
-    df = pd.DataFrame(xgboost_preprocess(data)) 
+    df = pd.DataFrame(xgboost_preprocess(data, cuts=cuts, clarities=clarities, colors=colors)) 
     price = round(float(model.predict(df)[0]), 2)
 
-    
     return render_index(predicted_price = price)
 
 
-def xgboost_preprocess(df):
-    df["cut"] = pd.Categorical(df['cut'], categories=cuts, ordered=True)
-    df['color'] = pd.Categorical(df['color'], categories=colors, ordered=True)
-    df['clarity'] = pd.Categorical(df['clarity'], categories=clarities, ordered=True)
-    return df
-
-def load_best_model():
-    return joblib.load("best_model/XGBoost-trials100.pkl")
