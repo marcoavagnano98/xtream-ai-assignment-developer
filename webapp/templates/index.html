@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diamond Features Form</title>
+    <style>
+        .form-container {
+            width: 300px;
+            margin: 0 auto;
+        }
+        .form-container table {
+            width: 100%;
+        }
+        .form-container td {
+            padding: 8px;
+        }
+        .form-container label {
+            display: inline-block;
+            width: 70px;
+        }
+        .form-container input[type="text"] {
+            width: calc(100% - 70px);
+        }
+        .form-container button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Insert Diamond Features</h1>
+        <form name="dfeatures" action="/submit" method="post">
+            <table>
+                <tr>
+                    <td><label for="x">X</label></td>
+                    <td><input type="text" id="x" name="x" required></td>
+                </tr>
+                <tr>
+                    <td><label for="y">Y</label></td>
+                    <td><input type="text" id="y" name="y" required></td>
+                </tr>
+                <tr>
+                    <td><label for="z">Z</label></td>
+                    <td><input type="text" id="z" name="z" required></td>
+                </tr>
+                <tr>
+                    <td><label for="carat">Carat</label></td>
+                    <td><input type="text" id="carat" name="carat" required></td>
+                </tr>
+                <tr>
+                    <td><label for="depth">Depth</label></td>
+                    <td><input type="text" id="depth" name="depth" required></td>
+                </tr>
+                <tr>
+                    <td><label for="table">Table</label></td>
+                    <td><input type="text" id="table" name="table" required></td>
+                </tr>
+                <tr>
+                    <td><label for="cut">Cut</label></td>
+                    <td>{{cut_select|safe}}</td>
+                </tr>
+                <tr>
+                    <td><label for="color">Color</label></td>
+                    <td>{{ color_select|safe }}</td>
+                </tr>
+                <tr>
+                    <td><label for="clarity">Clarity</label></td>
+                    <td>{{ clarity_select|safe }}</td>
+                </tr>
+                
+
+            </table>
+            <button type="submit">Predict Price</button>
+            <button type="submit">Get Similar Diamonds</button>
+        
+
+            <!-- Label inizialmente nascosta -->
+            
+            
+        </form>
+        <table>
+            <tr>
+                <td><label for="readonlyText">Predicted price</label></td>
+                <td><input type="text" id="pred_price" readonly value="{{predicted_price}}"></td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>
