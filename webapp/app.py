@@ -10,6 +10,12 @@ COLORS = ["E", "F", "G", "H", "I", "J"]
 
 @app.route("/")
 def index():
+    """
+    Home route that renders the index page.
+    
+    Returns:
+        str: Rendered HTML of the index page.
+    """
     return render_index()
 
 def render_index(**params):
@@ -29,6 +35,13 @@ def create_select(name, options):
 
 @app.route("/submit", methods=['POST'])
 def submit():
+    """
+    Route to handle form submission. Determines the action (predict or similar) 
+    and processes the data accordingly.
+    
+    Returns:
+        str: Rendered HTML with results or error message.
+    """
     action = request.form.get('action')
     data = request.form.to_dict(flat=True)
     try:
@@ -62,7 +75,7 @@ def predict_diamond_price(data):
     return render_index(predicted_price=price)
 
 def get_similar_diamonds(data, n_sample):
-    df = read_df("data/diamonds.csv")
+    df = pd.read_csv("data/diamonds.csv")
     filtered_df = df[
         (df['cut'] == data['cut'][0]) &
         (df['color'] == data['color'][0]) &
