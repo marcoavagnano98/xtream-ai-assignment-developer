@@ -82,4 +82,4 @@ The training pipeline is managed by a `BaseTrainer` and for each models I define
 
 ### Challenge 3
 Move in `webapp` folder <br/>
-Run `flask --app app run`
+Run `python3 app.py`
