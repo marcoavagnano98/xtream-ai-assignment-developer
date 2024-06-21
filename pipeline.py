@@ -16,6 +16,16 @@ import xgboost
 import optuna
 
 class BaseTrainer():
+    """
+    A base class for training machine learning models.
+    
+    Attributes:
+        data (pd.DataFrame): Dataset to be used for training.
+        seed (int): Random seed for reproducibility.
+        model_name (str): Name of the model.
+        processed_data (pd.DataFrame): Data after preprocessing.
+        res_path (str): Path to save the results.
+    """    
 
     def __init__(self, data, seed=42):
         
@@ -26,6 +36,12 @@ class BaseTrainer():
         self.res_path = "results"
 
     def __call__(self, **kwargs):
+        """
+        Calls the pipeline to preprocess data, train model and save results.
+
+        Args:
+            **kwargs: Additional keyword arguments for different models training.
+        """
         self.preprocess()
         results = self.train_and_test(**kwargs)
         self.save(results)
@@ -33,34 +49,61 @@ class BaseTrainer():
         
     @abstractmethod
     def preprocess(self):
+        """
+            Preprocess the data. The subclasses must override this methods because each model may have different preprocess.
+        """
         raise NotImplementedError('You must specify how to preprocess your data')
 
     def prepare_set(self):
+        """
+            Split the diamond train, and test set.
+            Returns:
+                tuple: Split data (x_train, x_test, y_train, y_test).
+        """
         x = self.processed_data.drop(columns='price')
         y = self.processed_data.price
         return train_test_split(x, y, test_size=0.2, random_state=self.seed)
     
     @abstractmethod
     def train_and_test(self):
+        """
+        Train the model and test it. This method must be overridden because each subclass has a different model
+
+        Returns:
+            dict: The results of the training and testing.
+        """
         raise NotImplementedError('You must specify how to train your data')
     
     def score(self, y_test, preds):
+        """
+        Calculate performance metrics for the model predictions.
+
+        Args:
+            y_test (pd.Series): The true values.
+            preds (np.ndarray): The predicted values.
+
+        Returns:
+            dict: The performance metrics.
+        """
         return {"R2": round(r2_score(y_test, preds), 4), "MAE": round(mean_absolute_error(y_test, preds), 2)}
 
     def save(self, results):
-        print(results)
+        """
+        Save the results and the model in results directory.
+
+        Args:
+            results (dict): The results to be saved.
+        """
+        
         tmp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S.%f")
         results["timestamp"] = tmp
+        print(results)
         if not os.path.exists(self.res_path):
             os.mkdir(self.res_path)
         
         save_path = os.path.join(self.res_path, f"{self.model_name}.csv")
         model_path = os.path.join(self.res_path, f"{self.model_name}-{tmp}.pkl")
-        if not os.path.exists(save_path):
-            header = True
-        else:
-            header = False
-       
+        header = not os.path.exists(save_path)
         log_df = pd.DataFrame(results, index=[0])
         log_df.to_csv(save_path, mode='a', header=header, index=False)
 
@@ -68,6 +111,9 @@ class BaseTrainer():
 
 
 class LinearTrainer(BaseTrainer):
+    """
+    A trainer class for training a linear regression model.
+    """
     def __init__(self, data, seed=42):
         super().__init__(data, seed)
         self.model_name = "Linear"
@@ -80,6 +126,13 @@ class LinearTrainer(BaseTrainer):
 
 
     def train_and_test(self, log_trasf= False):
+        """
+        Train and test the linear regression model.
+
+        Args:
+            log_trasf (bool, optional): Whether to apply log transformation to the target variable. Default is False.
+
+        """
         x_train, x_test, y_train, y_test = self.prepare_set()
         if log_trasf:
             y_train = np.log(y_train)
@@ -95,6 +148,9 @@ class LinearTrainer(BaseTrainer):
         return results
     
 class XGBoostTrainer(BaseTrainer):
+    """
+    A trainer class for training an XGBoost model.
+    """
     def __init__(self, data, seed=42):
         super().__init__(data, seed)
         self.model_name = "XGBoost"
@@ -108,12 +164,28 @@ class XGBoostTrainer(BaseTrainer):
         print(self.processed_data.keys())
 
     def xgboost_train(self,x, y, **model_params):
+        """
+        Train the XGBoost model with given parameters.
+
+        Args:
+            x (pd.DataFrame): The feature data.
+            y (pd.Series): The target data.
+            **model_params: Model initialization params.
+        """
         self.model = xgboost.XGBRegressor(**model_params)
         self.model.fit(x, y)
 
 
     def objective(self, trial):
-        
+        """
+        Define the objective function for Optuna to minimize.
+
+        Args:
+            trial (optuna.trial.Trial): A trial object for parameter optimization.
+
+        Returns:
+            float: The mean absolute error of the model predictions.
+        """
         param = {
             'lambda': trial.suggest_float('lambda', 1e-8, 1.0, log=True),
             'alpha': trial.suggest_float('alpha', 1e-8, 1.0, log=True),
@@ -139,6 +211,13 @@ class XGBoostTrainer(BaseTrainer):
 
 
     def train_and_test(self, tuning_trials=False):
+        """
+        Train and test the XGBoost model, optionally using Optuna for hyperparameter tuning.
+
+        Args:
+            tuning_trials (int, optional): The number of trials for Optuna tuning. Default is False.
+
+        """
         model_params = {'random_state': self.seed, 'enable_categorical': True}
         if tuning_trials:
             study = optuna.create_study(direction='minimize',  study_name='Diamonds XGBoost')
